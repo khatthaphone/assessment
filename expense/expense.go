@@ -1,5 +1,15 @@
 package expense
 
+import (
+	"fmt"
+	"log"
+	"net/http"
+
+	"github.com/labstack/echo/v4"
+	"github.com/lib/pq"
+	_ "github.com/lib/pq"
+)
+
 type Err struct {
 	Message string
 }
@@ -12,8 +22,53 @@ type Expense struct {
 	Tags   []string `json:"tags"`
 }
 
-type handler struct{}
+type handler struct {
+	db *DB
+}
 
-func NewHandler() *handler {
-	return &handler{}
+func NewHandler(db *DB) *handler {
+	return &handler{
+		db: db,
+	}
+}
+
+func (h *handler) AddExpenseHandler(c echo.Context) error {
+
+	var e Expense
+	err := c.Bind(&e)
+	if err != nil {
+		return c.JSON(http.StatusBadRequest, Err{Message: err.Error()})
+	}
+
+	sql := `INSERT INTO expenses(title, amount, note, tags) VALUES($1, $2, $3, $4) RETURNING id`
+	row := db.QueryRow(sql, e.Title, e.Amount, e.Note, pq.Array(&e.Tags))
+
+	err = row.Scan(&e.ID)
+	if err != nil {
+		log.Fatal("Error adding new expense", err.Error())
+		return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
+	}
+
+	return c.JSON(http.StatusCreated, e)
+
+}
+
+func (h *handler) GetExpenseHandler(c echo.Context) error {
+	id := c.Param("id")
+
+	fmt.Sprintf("Searching for expense ID: %s", id)
+
+	// TODO: use db.Prepare
+	sql := `SELECT id, title, amount, note, tags FROM expenses WHERE id = $1 LIMIT 1`
+
+	row := db.QueryRow(sql, id)
+
+	var e Expense
+	err := row.Scan(&e.ID, &e.Title, &e.Amount, &e.Note, (pq.Array)(&e.Tags))
+	if err != nil {
+		log.Fatal("Unable to find expense with sepcified id", err)
+		return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
+	}
+
+	return c.JSON(http.StatusOK, e)
 }

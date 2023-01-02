@@ -8,6 +8,16 @@ import (
 	_ "github.com/lib/pq"
 )
 
+type DB struct {
+	db *sql.DB
+}
+
+func NewDB(db *sql.DB) *DB {
+	return &DB{
+		db: db,
+	}
+}
+
 var db *sql.DB
 
 func InitDB() *sql.DB {
