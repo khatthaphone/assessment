@@ -16,14 +16,16 @@ func main() {
 	db := expense.InitDB()
 	defer db.Close()
 
+	database := expense.NewDB(db)
+
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 
-	// handler := expense.NewHandler()
-	e.POST("/expenses", expense.AddExpenseHandler)
-	e.GET("/expenses/:id", expense.GetExpenseHandler)
+	handler := expense.NewHandler(database)
+	e.POST("/expenses", handler.AddExpenseHandler)
+	e.GET("/expenses/:id", handler.GetExpenseHandler)
 
 	port := os.Getenv("PORT")
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%v", port)))
