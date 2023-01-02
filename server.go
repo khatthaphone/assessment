@@ -23,6 +23,7 @@ func main() {
 
 	// handler := expense.NewHandler()
 	e.POST("/expenses", expense.AddExpenseHandler)
+	e.GET("/expenses/:id", expense.GetExpenseHandler)
 
 	port := os.Getenv("PORT")
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%v", port)))
