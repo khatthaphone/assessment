@@ -5,21 +5,23 @@ import (
 	"net/http"
 	"os"
 
-	"github.com/khatthaphone/assesment/expense"
 	"github.com/labstack/echo/v4"
 
 	_ "github.com/lib/pq"
+
+	"github.com/khatthaphone/assesment/expense"
 )
 
 func main() {
-	closeDB := expense.InitDB()
-	defer closeDB()
+	db := expense.InitDB()
+	defer db.Close()
 
 	e := echo.New()
 	e.GET("/", func(c echo.Context) error {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 
+	// handler := expense.NewHandler()
 	e.POST("/expenses", expense.AddExpenseHandler)
 
 	port := os.Getenv("PORT")

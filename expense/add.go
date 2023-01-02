@@ -17,7 +17,7 @@ func AddExpenseHandler(c echo.Context) error {
 	}
 
 	sql := `INSERT INTO expenses(title, amount, note, tags) VALUES($1, $2, $3, $4) RETURNING id`
-	row := db.QueryRow(sql, e.Title, e.Amount, e.Note, pq.Array(e.Tags))
+	row := db.QueryRow(sql, e.Title, e.Amount, e.Note, pq.Array(&e.Tags))
 
 	err = row.Scan(&e.ID)
 	if err != nil {
@@ -25,6 +25,6 @@ func AddExpenseHandler(c echo.Context) error {
 		return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
 	}
 
-	return c.JSON(http.StatusMultipleChoices, e)
+	return c.JSON(http.StatusCreated, e)
 
 }

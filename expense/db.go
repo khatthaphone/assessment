@@ -10,7 +10,7 @@ import (
 
 var db *sql.DB
 
-func InitDB() func() error {
+func InitDB() *sql.DB {
 	var err error
 	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
@@ -31,5 +31,5 @@ func InitDB() func() error {
 		log.Fatal("can't create table", err)
 	}
 
-	return db.Close
+	return db
 }

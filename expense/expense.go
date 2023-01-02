@@ -11,3 +11,9 @@ type Expense struct {
 	Note   string   `json:"note"`
 	Tags   []string `json:"tags"`
 }
+
+type handler struct{}
+
+func NewHandler() *handler {
+	return &handler{}
+}
