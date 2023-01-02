@@ -8,21 +8,9 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type DB struct {
-	db *sql.DB
-}
-
-func NewDB(db *sql.DB) *DB {
-	return &DB{
-		db: db,
-	}
-}
-
-var db *sql.DB
-
 func InitDB() *sql.DB {
 	var err error
-	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatal("Unable to connect to DB", err)
 	}

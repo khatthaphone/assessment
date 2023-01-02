@@ -1,6 +1,7 @@
 package expense
 
 import (
+	"database/sql"
 	"fmt"
 	"log"
 	"net/http"
@@ -24,10 +25,10 @@ type Expense struct {
 }
 
 type handler struct {
-	db *DB
+	db *sql.DB
 }
 
-func NewHandler(db *DB) *handler {
+func NewHandler(db *sql.DB) *handler {
 	return &handler{
 		db: db,
 	}
@@ -42,7 +43,7 @@ func (h *handler) AddExpenseHandler(c echo.Context) error {
 	}
 
 	sql := `INSERT INTO expenses(title, amount, note, tags) VALUES($1, $2, $3, $4) RETURNING id`
-	row := db.QueryRow(sql, e.Title, e.Amount, e.Note, pq.Array(&e.Tags))
+	row := h.db.QueryRow(sql, e.Title, e.Amount, e.Note, pq.Array(&e.Tags))
 
 	err = row.Scan(&e.ID)
 	if err != nil {
@@ -56,17 +57,20 @@ func (h *handler) AddExpenseHandler(c echo.Context) error {
 
 func (h *handler) GetExpenseHandler(c echo.Context) error {
 	fmt.Printf("Raw param: %v\n", c.Param("id"))
-	id, _ := strconv.ParseInt(c.Param("id"), 10, 64)
+	id, err := strconv.ParseInt(c.Param("id"), 10, 64)
+	if err != nil {
+		log.Fatal("Unable to find expense with sepcified id", err.Error())
+	}
 
 	fmt.Printf("Searching for expense ID: %v\n", id)
 
 	// TODO: use db.Prepare
 	sql := `SELECT id, title, amount, note, tags FROM expenses WHERE id = $1`
 
-	row := db.QueryRow(sql, id)
+	row := h.db.QueryRow(sql, id)
 
 	var e Expense
-	err := row.Scan(&e.ID, &e.Title, &e.Amount, &e.Note, (pq.Array)(&e.Tags))
+	err = row.Scan(&e.ID, &e.Title, &e.Amount, &e.Note, (pq.Array)(&e.Tags))
 	if err != nil {
 		log.Fatal("Unable to find expense with sepcified id", err.Error())
 		return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
@@ -85,7 +89,7 @@ func (h *handler) UpdateExpenseHandler(c echo.Context) error {
 	}
 
 	sql := `UPDATE expenses SET title = $1, amount = $2, note = $3, tags = $4 WHERE id = $5 RETURNING id, title, amount, note, tags`
-	row := db.QueryRow(sql, e.Title, e.Amount, e.Note, pq.Array(&e.Tags), id)
+	row := h.db.QueryRow(sql, e.Title, e.Amount, e.Note, pq.Array(&e.Tags), id)
 
 	var result Expense
 	err = row.Scan(&result.ID, &result.Title, &result.Amount, &result.Note, (pq.Array)(&result.Tags))
@@ -102,7 +106,7 @@ func (h *handler) GetAllExpensesHandler(c echo.Context) error {
 	// TODO: use db.Prepare
 	sql := `SELECT id, title, amount, note, tags FROM expenses`
 
-	rows, err := db.Query(sql)
+	rows, err := h.db.Query(sql)
 	if err != nil {
 		log.Fatal("Unable to find expenses", err.Error())
 		return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
