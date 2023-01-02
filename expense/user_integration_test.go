@@ -15,11 +15,6 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-var (
-	addExpenseJson  = `{"title": "strawberry smoothie","amount": 79,"note": "night market promotion discount 10 bath","tags": ["food", "beverage"]}`
-	editExpenseJson = `{"title": "apple smoothie","amount": 89,"note": "no discount","tags": ["beverage"]}`
-)
-
 func setup() (*sql.DB, func()) {
 	conn, err := sql.Open("postgres", "postgresql://postgres:postgres@localhost/expenses?sslmode=disable")
 	if err != nil {
@@ -61,6 +56,8 @@ func TestAddExpense(t *testing.T) {
 	db, close := setup()
 	defer close()
 
+	addExpenseJson := `{"title": "strawberry smoothie","amount": 79,"note": "night market promotion discount 10 bath","tags": ["food", "beverage"]}`
+
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodPost, "/expenses", strings.NewReader(addExpenseJson))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
@@ -78,21 +75,17 @@ func TestGetExpenseById(t *testing.T) {
 	db, close := setup()
 	defer close()
 
-	id, err := migrateGetExpense(db)
-	if err != nil {
-		log.Fatalf("Error migrating for get exepense id: %v", err.Error())
-		return
-	}
+	migrateExpenseForTest(db)
 
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/expenses/%v", id), strings.NewReader(""))
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/expenses/%v", 1), strings.NewReader(""))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
 	// Manually set path
 	c.SetPath("/expenses/:id")
 	c.SetParamNames("id")
-	c.SetParamValues(fmt.Sprintf("%v", id))
+	c.SetParamValues(fmt.Sprintf("%v", 1))
 	h := &handler{db}
 
 	if assert.NoError(t, h.GetExpenseHandler(c)) {
@@ -105,14 +98,12 @@ func TestUpdateExepense(t *testing.T) {
 	db, close := setup()
 	defer close()
 
-	id, err := migrateGetExpense(db)
-	if err != nil {
-		log.Fatalf("Error migrating for get exepense id: %v", err.Error())
-		return
-	}
+	migrateExpenseForTest(db)
+
+	editExpenseJson := `{"title": "apple smoothie","amount": 89,"note": "no discount","tags": ["beverage"]}`
 
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/expenses/%d", id), strings.NewReader(editExpenseJson))
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/expenses/%d", 1), strings.NewReader(editExpenseJson))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -120,7 +111,7 @@ func TestUpdateExepense(t *testing.T) {
 	// Manually set path
 	c.SetPath("/expenses/:id")
 	c.SetParamNames("id")
-	c.SetParamValues(fmt.Sprintf("%d", id))
+	c.SetParamValues(fmt.Sprintf("%d", 1))
 
 	h := &handler{db}
 
@@ -133,6 +124,9 @@ func TestUpdateExepense(t *testing.T) {
 func TestGetAllExpenses(t *testing.T) {
 	db, close := setup()
 	defer close()
+
+	migrateExpenseForTest(db)
+	migrateExpenseForTest(db)
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/expenses", strings.NewReader(""))
@@ -147,14 +141,12 @@ func TestGetAllExpenses(t *testing.T) {
 	// TODO: Test res body match req
 }
 
-func migrateGetExpense(db *sql.DB) (int, error) {
+func migrateExpenseForTest(db *sql.DB) {
 	res := db.QueryRow(`INSERT INTO expenses(title, amount, note, tags) VALUES($1, $2, $3, $4) RETURNING id`, "apple smoothie", 89, "no discount", pq.Array([]string{"beverage"}))
-
 	var insertId int
 	err := res.Scan(&insertId)
 	if err != nil {
-		return -1, err
+		log.Fatalf("Error migrating for update exepense: %v", err.Error())
+		return
 	}
-
-	return insertId, err
 }
