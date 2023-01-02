@@ -27,6 +27,7 @@ func main() {
 	e.POST("/expenses", handler.AddExpenseHandler)
 	e.GET("/expenses/:id", handler.GetExpenseHandler)
 	e.PUT("/expenses/:id", handler.UpdateExpenseHandler)
+	e.GET("/expenses", handler.GetAllExpensesHandler)
 
 	port := os.Getenv("PORT")
 	e.Logger.Fatal(e.Start(fmt.Sprintf(":%v", port)))
