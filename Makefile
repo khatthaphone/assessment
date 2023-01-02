@@ -1,12 +1,13 @@
 
 PORT=2565
 DB_URL=postgresql://postgres:postgres@localhost/expenses?sslmode=disable
+ENV=PORT=${PORT} DATABASE_URL=${DB_URL}
 
 dev:
-	PORT=${PORT} DATABASE_URL=${DB_URL} re go run server.go
+	${ENV} re go run server.go
 
 test:
-	PORT=${PORT} DATABASE_URL=${DB_URL} go test -v ./...
+	${ENV} go test -v ./...
 
 test-integration:
-	PORT=${PORT} DATABASE_URL=${DB_URL} go test -v -tags integration ./...
+	${ENV} go test -v -tags integration ./...

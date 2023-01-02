@@ -2,6 +2,7 @@ package expense
 
 import (
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"log"
 	"net/http"
@@ -63,12 +64,11 @@ func TestAddExpense(t *testing.T) {
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	h := &handler{db}
+	h := NewHandler(db)
 
 	if assert.NoError(t, h.AddExpenseHandler(c)) {
 		assert.Equal(t, http.StatusCreated, rec.Code)
 	}
-	// TODO: Test res body match req
 }
 
 func TestGetExpenseById(t *testing.T) {
@@ -86,12 +86,20 @@ func TestGetExpenseById(t *testing.T) {
 	c.SetPath("/expenses/:id")
 	c.SetParamNames("id")
 	c.SetParamValues(fmt.Sprintf("%v", 1))
-	h := &handler{db}
+	h := NewHandler(db)
 
 	if assert.NoError(t, h.GetExpenseHandler(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
+
+		var res Expense
+		json.Unmarshal(rec.Body.Bytes(), &res)
+
+		assert.IsType(t, int64(1), res.ID)
+		assert.IsType(t, "", res.Title)
+		assert.IsType(t, 1, res.Amount)
+		assert.IsType(t, "", res.Note)
+		assert.IsType(t, []string{""}, res.Tags)
 	}
-	// TODO: Test res body match req
 }
 
 func TestUpdateExepense(t *testing.T) {
@@ -100,10 +108,20 @@ func TestUpdateExepense(t *testing.T) {
 
 	migrateExpenseForTest(db)
 
-	editExpenseJson := `{"title": "apple smoothie","amount": 89,"note": "no discount","tags": ["beverage"]}`
+	expense := &Expense{
+		Title:  "apple smotthie",
+		Amount: 89,
+		Note:   "no discount",
+		Tags:   []string{"beverage"},
+	}
+	expenseJson, err := json.Marshal(expense)
+	if err != nil {
+		log.Fatal("Failed contructing update req body")
+		return
+	}
 
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/expenses/%d", 1), strings.NewReader(editExpenseJson))
+	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/expenses/%d", 1), strings.NewReader(string(expenseJson)))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -113,18 +131,28 @@ func TestUpdateExepense(t *testing.T) {
 	c.SetParamNames("id")
 	c.SetParamValues(fmt.Sprintf("%d", 1))
 
-	h := &handler{db}
+	h := NewHandler(db)
 
 	if assert.NoError(t, h.UpdateExpenseHandler(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
+
+		var res Expense
+		json.Unmarshal(rec.Body.Bytes(), &res)
+
+		// assert.Equal(t, expense.ID, res.ID)
+		assert.Equal(t, expense.Title, res.Title)
+		assert.Equal(t, expense.Amount, res.Amount)
+		assert.Equal(t, expense.Note, res.Note)
+		assert.Equal(t, expense.Tags, res.Tags)
+
 	}
-	// TODO: Test res body match req
 }
 
 func TestGetAllExpenses(t *testing.T) {
 	db, close := setup()
 	defer close()
 
+	// Add 2 expenses
 	migrateExpenseForTest(db)
 	migrateExpenseForTest(db)
 
@@ -133,12 +161,26 @@ func TestGetAllExpenses(t *testing.T) {
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
-	h := &handler{db}
+	h := NewHandler(db)
 
 	if assert.NoError(t, h.GetAllExpensesHandler(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
+
+		var res []Expense
+		json.Unmarshal(rec.Body.Bytes(), &res)
+
+		expenses := []Expense{
+			{
+				Title:  "apple smotthie",
+				Amount: 89,
+				Note:   "no discount",
+				Tags:   []string{"beverage"},
+			},
+		}
+
+		assert.IsType(t, expenses, res)
+		assert.Equal(t, 2, len(res))
 	}
-	// TODO: Test res body match req
 }
 
 func migrateExpenseForTest(db *sql.DB) {
