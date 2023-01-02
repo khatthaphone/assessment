@@ -97,3 +97,29 @@ func (h *handler) UpdateExpenseHandler(c echo.Context) error {
 	return c.JSON(http.StatusOK, result)
 
 }
+
+func (h *handler) GetAllExpensesHandler(c echo.Context) error {
+	// TODO: use db.Prepare
+	sql := `SELECT id, title, amount, note, tags FROM expenses`
+
+	rows, err := db.Query(sql)
+	if err != nil {
+		log.Fatal("Unable to find expenses", err.Error())
+		return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
+	}
+
+	var expenses []Expense
+
+	for rows.Next() {
+		var e Expense
+		err := rows.Scan(&e.ID, &e.Title, &e.Amount, &e.Note, (pq.Array)(&e.Tags))
+		if err != nil {
+			log.Fatal("Unable to find expenses", err.Error())
+			return c.JSON(http.StatusInternalServerError, Err{Message: err.Error()})
+		}
+
+		expenses = append(expenses, e)
+	}
+
+	return c.JSON(http.StatusOK, expenses)
+}

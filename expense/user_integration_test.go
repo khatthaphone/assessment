@@ -46,9 +46,7 @@ func TestGetExpenseById(t *testing.T) {
 	id := 29
 	setup()
 	e := echo.New()
-	url := fmt.Sprintf("/expenses/%d", id)
-	fmt.Printf("Testing get ID: %s\n", url)
-	req := httptest.NewRequest(http.MethodGet, url, strings.NewReader(""))
+	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/expenses/%d", id), strings.NewReader(""))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -81,6 +79,22 @@ func TestUpdateExepense(t *testing.T) {
 	h := &handler{db}
 
 	if assert.NoError(t, h.UpdateExpenseHandler(c)) {
+		assert.Equal(t, http.StatusOK, rec.Code)
+	}
+	// TODO: Test res body match req
+}
+
+func TestGetAllExpenses(t *testing.T) {
+	setup()
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodGet, "/expenses", strings.NewReader(""))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	db := NewDB(InitDB())
+	h := &handler{db}
+
+	if assert.NoError(t, h.GetAllExpensesHandler(c)) {
 		assert.Equal(t, http.StatusOK, rec.Code)
 	}
 	// TODO: Test res body match req
