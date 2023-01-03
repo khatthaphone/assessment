@@ -8,37 +8,11 @@ import (
 	_ "github.com/lib/pq"
 )
 
-type DB struct {
-	db *sql.DB
-}
-
-func NewDB(db *sql.DB) *DB {
-	return &DB{
-		db: db,
-	}
-}
-
-var db *sql.DB
-
 func InitDB() *sql.DB {
 	var err error
-	db, err = sql.Open("postgres", os.Getenv("DATABASE_URL"))
+	db, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatal("Unable to connect to DB", err)
-	}
-
-	createTableSql := `
-		CREATE TABLE IF NOT EXISTS expenses (
-			id SERIAL PRIMARY KEY,
-			title TEXT,
-			amount FLOAT,
-			note TEXT,
-			tags TEXT[]
-		);
-	`
-	_, err = db.Exec(createTableSql)
-	if err != nil {
-		log.Fatal("can't create table", err)
 	}
 
 	return db

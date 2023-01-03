@@ -1,0 +1,37 @@
+version: '3.8'
+
+services:
+  it_tests:
+    build:
+      context: .
+      dockerfile: ./Dockerfile.test
+    platform: linux/amd64
+    environment:
+      TZ: Asia/Bangkok
+    volumes:
+      - $PWD:/go/src/target
+    depends_on:
+      - db
+    networks:
+      - integration-test-sample
+  db:
+    image: postgres:12.12
+    platform: linux/amd64
+    environment:
+      TZ: Asia/Bangkok
+      PGTZ: Asia/Bangkok
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: expenses-it-test
+    ports:
+      - 5432:5432
+    restart: on-failure
+    expose:
+      - 5432
+    volumes:
+      - ./db:/docker-entrypoint-initdb.d/
+    networks:
+      - integration-test-sample
+
+networks:
+  integration-test-sample:
