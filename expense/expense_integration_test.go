@@ -1,3 +1,5 @@
+//go:build integration
+
 package expense
 
 import (
@@ -7,6 +9,7 @@ import (
 	"log"
 	"net/http"
 	"net/http/httptest"
+	"os"
 	"strings"
 	"testing"
 
@@ -17,7 +20,7 @@ import (
 )
 
 func setup() (*sql.DB, func()) {
-	conn, err := sql.Open("postgres", "postgresql://postgres:postgres@localhost/expenses?sslmode=disable")
+	conn, err := sql.Open("postgres", os.Getenv("TEST_DB_URL"))
 	if err != nil {
 		log.Fatal("Unable to connect to DB", err)
 	}
