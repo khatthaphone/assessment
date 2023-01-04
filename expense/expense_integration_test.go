@@ -1,5 +1,3 @@
-//go:build integration
-
 package expense
 
 import (
@@ -20,7 +18,7 @@ import (
 )
 
 func setup() (*sql.DB, func()) {
-	conn, err := sql.Open("postgres", os.Getenv("TEST_DB_URL"))
+	conn, err := sql.Open("postgres", os.Getenv("DB_URL"))
 	if err != nil {
 		log.Fatal("Unable to connect to DB", err)
 	}
@@ -56,18 +54,12 @@ func setup() (*sql.DB, func()) {
 
 // TODO: TestNoAuth
 
-// TODO: TestInvalidAuth
-
-func TestAddExpense(t *testing.T) {
-
-	// TODO: db init, migrate, seedz
+func TestNoAuth(t *testing.T) {
 	db, close := setup()
 	defer close()
 
-	addExpenseJson := `{"title": "strawberry smoothie","amount": 79,"note": "night market promotion discount 10 bath","tags": ["food", "beverage"]}`
-
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodPost, "/expenses", strings.NewReader(addExpenseJson))
+	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(""))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
 	c := e.NewContext(req, rec)
@@ -78,11 +70,52 @@ func TestAddExpense(t *testing.T) {
 	}
 }
 
+// TODO: TestInvalidAuth
+
+func TestAddExpense(t *testing.T) {
+
+	// TODO: db init, migrate, seedz
+	db, close := setup()
+	defer close()
+
+	expense := &Expense{
+		Title:  "apple smotthie",
+		Amount: 89,
+		Note:   "no discount",
+		Tags:   []string{"beverage"},
+	}
+
+	expenseJson, err := json.Marshal(expense)
+	if err != nil {
+		t.Fatal("Failed to contruct json req body", err)
+	}
+
+	e := echo.New()
+	req := httptest.NewRequest(http.MethodPost, "/expenses", strings.NewReader(string(expenseJson)))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	h := NewHandler(db)
+
+	if assert.NoError(t, h.AddExpenseHandler(c)) {
+		assert.Equal(t, http.StatusCreated, rec.Code)
+
+		var res Expense
+		json.Unmarshal(rec.Body.Bytes(), &res)
+
+		assert.IsType(t, int64(1), res.ID)
+		assert.Equal(t, expense.Title, res.Title)
+		assert.Equal(t, expense.Amount, res.Amount)
+		assert.Equal(t, expense.Note, res.Note)
+		assert.Equal(t, expense.Tags, res.Tags)
+	}
+}
+
 func TestGetExpenseById(t *testing.T) {
 	db, close := setup()
 	defer close()
 
-	migrateExpenseForTest(db)
+	expense, _ := migrateExpenseForTest(db)
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/expenses/%v", 1), strings.NewReader(""))
@@ -102,10 +135,10 @@ func TestGetExpenseById(t *testing.T) {
 		json.Unmarshal(rec.Body.Bytes(), &res)
 
 		assert.IsType(t, int64(1), res.ID)
-		assert.IsType(t, "", res.Title)
-		assert.IsType(t, 1, res.Amount)
-		assert.IsType(t, "", res.Note)
-		assert.IsType(t, []string{""}, res.Tags)
+		assert.Equal(t, expense.Title, res.Title)
+		assert.Equal(t, expense.Amount, res.Amount)
+		assert.Equal(t, expense.Note, res.Note)
+		assert.Equal(t, expense.Tags, res.Tags)
 	}
 }
 
@@ -113,19 +146,7 @@ func TestUpdateExepense(t *testing.T) {
 	db, close := setup()
 	defer close()
 
-	migrateExpenseForTest(db)
-
-	expense := &Expense{
-		Title:  "apple smotthie",
-		Amount: 89,
-		Note:   "no discount",
-		Tags:   []string{"beverage"},
-	}
-	expenseJson, err := json.Marshal(expense)
-	if err != nil {
-		log.Fatal("Failed contructing update req body")
-		return
-	}
+	expense, expenseJson := migrateExpenseForTest(db)
 
 	e := echo.New()
 	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/expenses/%d", 1), strings.NewReader(string(expenseJson)))
@@ -190,12 +211,28 @@ func TestGetAllExpenses(t *testing.T) {
 	}
 }
 
-func migrateExpenseForTest(db *sql.DB) {
-	res := db.QueryRow(`INSERT INTO expenses(title, amount, note, tags) VALUES($1, $2, $3, $4) RETURNING id`, "apple smoothie", 89, "no discount", pq.Array([]string{"beverage"}))
+func migrateExpenseForTest(db *sql.DB) (*Expense, []byte) {
+
+	expense := &Expense{
+		Title:  "apple smotthie",
+		Amount: 89,
+		Note:   "no discount",
+		Tags:   []string{"beverage"},
+	}
+
+	expenseJson, err := json.Marshal(expense)
+	if err != nil {
+		log.Fatal("Failed contructing update req body")
+		return nil, nil
+	}
+
+	res := db.QueryRow(`INSERT INTO expenses(title, amount, note, tags) VALUES($1, $2, $3, $4) RETURNING id`, expense.Title, expense.Amount, expense.Note, pq.Array(expense.Tags))
 	var insertId int
-	err := res.Scan(&insertId)
+	err = res.Scan(&insertId)
 	if err != nil {
 		log.Fatalf("Error migrating for update exepense: %v", err.Error())
-		return
+		return nil, nil
 	}
+
+	return expense, expenseJson
 }
