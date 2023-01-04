@@ -21,6 +21,8 @@ func main() {
 		return c.String(http.StatusOK, "Hello, World!")
 	})
 
+	e.Use(loginMiddleware)
+
 	handler := expense.NewHandler(db)
 	e.POST("/expenses", handler.AddExpenseHandler)
 	e.GET("/expenses/:id", handler.GetExpenseHandler)

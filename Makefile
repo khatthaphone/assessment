@@ -6,7 +6,7 @@ ENV=PORT=${PORT} DATABASE_URL=${DB_URL}
 TEST_ENV=PORT=${PORT} DATABASE_URL=${TEST_DB_URL}
 
 dev:
-	${ENV} re go run server.go
+	${ENV} re go run .
 
 test:
 	${TEST_ENV} go test -v ./...

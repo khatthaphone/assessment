@@ -54,6 +54,10 @@ func setup() (*sql.DB, func()) {
 	return conn, close
 }
 
+// TODO: TestNoAuth
+
+// TODO: TestInvalidAuth
+
 func TestAddExpense(t *testing.T) {
 
 	// TODO: db init, migrate, seedz
