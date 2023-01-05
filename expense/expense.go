@@ -2,7 +2,6 @@ package expense
 
 import (
 	"database/sql"
-	"fmt"
 	"net/http"
 	"strconv"
 
@@ -36,10 +35,17 @@ func NewHandler(db *sql.DB) *handler {
 
 func (h *handler) AddExpenseHandler(c echo.Context) error {
 
+	if c.Request().Body == http.NoBody {
+		return c.JSON(http.StatusBadRequest, Err{Message: "No request body provided", Error: "NoBody"})
+	}
+
 	var e Expense
 	err := c.Bind(&e)
 	if err != nil {
 		return c.JSON(http.StatusBadRequest, Err{Message: "Error occurred when binding json from request body", Error: err.Error()})
+	}
+	if e.Title == "" || e.Note == "" || len(e.Tags) == 0 {
+		return c.JSON(http.StatusBadRequest, Err{Message: "Invalid JSON structure", Error: "InvalidJson"})
 	}
 
 	sql := `INSERT INTO expenses(title, amount, note, tags) VALUES($1, $2, $3, $4) RETURNING id`
@@ -60,8 +66,6 @@ func (h *handler) GetExpenseHandler(c echo.Context) error {
 		return c.JSON(http.StatusBadRequest, Err{Message: "No epense id provided", Error: err.Error()})
 	}
 
-	fmt.Printf("Searching for expense ID: %v\n", id)
-
 	// TODO: use db.Prepare
 	sql := `SELECT id, title, amount, note, tags FROM expenses WHERE id = $1`
 
@@ -77,11 +81,16 @@ func (h *handler) GetExpenseHandler(c echo.Context) error {
 }
 
 func (h *handler) UpdateExpenseHandler(c echo.Context) error {
+
+	if c.Request().Body == http.NoBody {
+		return c.JSON(http.StatusBadRequest, Err{Message: "No request body provided", Error: "NoBody"})
+	}
+
 	id := c.Param("id")
 
 	var e Expense
 	err := c.Bind(&e)
-	if err != nil {
+	if err != nil || e.Title == "" || e.Note == "" || len(e.Tags) == 0 {
 		return c.JSON(http.StatusBadRequest, Err{Message: err.Error()})
 	}
 

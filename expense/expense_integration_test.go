@@ -17,7 +17,7 @@ import (
 	"github.com/stretchr/testify/assert"
 )
 
-func setup() (*sql.DB, func()) {
+func setup() (*echo.Echo, *sql.DB, func()) {
 	conn, err := sql.Open("postgres", os.Getenv("DB_URL"))
 	if err != nil {
 		log.Fatal("Unable to connect to DB", err)
@@ -49,25 +49,9 @@ func setup() (*sql.DB, func()) {
 		conn.Close()
 	}
 
-	return conn, close
-}
-
-// TODO: TestNoAuth
-
-func TestNoAuth(t *testing.T) {
-	db, close := setup()
-	defer close()
-
 	e := echo.New()
-	req := httptest.NewRequest(http.MethodGet, "/", strings.NewReader(""))
-	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
-	rec := httptest.NewRecorder()
-	c := e.NewContext(req, rec)
-	h := NewHandler(db)
 
-	if assert.NoError(t, h.AddExpenseHandler(c)) {
-		assert.Equal(t, http.StatusCreated, rec.Code)
-	}
+	return e, conn, close
 }
 
 // TODO: TestInvalidAuth
@@ -75,7 +59,7 @@ func TestNoAuth(t *testing.T) {
 func TestAddExpense(t *testing.T) {
 
 	// TODO: db init, migrate, seedz
-	db, close := setup()
+	e, db, close := setup()
 	defer close()
 
 	expense := &Expense{
@@ -90,7 +74,6 @@ func TestAddExpense(t *testing.T) {
 		t.Fatal("Failed to contruct json req body", err)
 	}
 
-	e := echo.New()
 	req := httptest.NewRequest(http.MethodPost, "/expenses", strings.NewReader(string(expenseJson)))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
@@ -111,13 +94,46 @@ func TestAddExpense(t *testing.T) {
 	}
 }
 
+func TestAddExpenseNoJsonShouldFail(t *testing.T) {
+
+	// TODO: db init, migrate, seedz
+	e, db, close := setup()
+	defer close()
+
+	req := httptest.NewRequest(http.MethodPost, "/expenses", http.NoBody)
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	h := NewHandler(db)
+
+	if assert.NoError(t, h.AddExpenseHandler(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	}
+}
+
+func TestAddExpenseInvalidJsonShouldFail(t *testing.T) {
+
+	// TODO: db init, migrate, seedz
+	e, db, close := setup()
+	defer close()
+
+	req := httptest.NewRequest(http.MethodPost, "/expenses", strings.NewReader(`{"hello": "world!"}`))
+	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
+	rec := httptest.NewRecorder()
+	c := e.NewContext(req, rec)
+	h := NewHandler(db)
+
+	if assert.NoError(t, h.AddExpenseHandler(c)) {
+		assert.Equal(t, http.StatusBadRequest, rec.Code)
+	}
+}
+
 func TestGetExpenseById(t *testing.T) {
-	db, close := setup()
+	e, db, close := setup()
 	defer close()
 
 	expense, _ := migrateExpenseForTest(db)
 
-	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, fmt.Sprintf("/expenses/%v", 1), strings.NewReader(""))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
@@ -143,12 +159,11 @@ func TestGetExpenseById(t *testing.T) {
 }
 
 func TestUpdateExepense(t *testing.T) {
-	db, close := setup()
+	e, db, close := setup()
 	defer close()
 
 	expense, expenseJson := migrateExpenseForTest(db)
 
-	e := echo.New()
 	req := httptest.NewRequest(http.MethodPut, fmt.Sprintf("/expenses/%d", 1), strings.NewReader(string(expenseJson)))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()
@@ -177,14 +192,13 @@ func TestUpdateExepense(t *testing.T) {
 }
 
 func TestGetAllExpenses(t *testing.T) {
-	db, close := setup()
+	e, db, close := setup()
 	defer close()
 
 	// Add 2 expenses
 	migrateExpenseForTest(db)
 	migrateExpenseForTest(db)
 
-	e := echo.New()
 	req := httptest.NewRequest(http.MethodGet, "/expenses", strings.NewReader(""))
 	req.Header.Set(echo.HeaderContentType, echo.MIMEApplicationJSON)
 	rec := httptest.NewRecorder()

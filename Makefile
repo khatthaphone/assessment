@@ -8,7 +8,7 @@ dev:
 	${ENV} re go run .
 
 test:
-	${ENV} go test -v -cover ./...
+	${ENV} go test -v -cover ./... -coverprofile coverage.out
 
 test-integration:
 	${ENV} go test -v -tags integration ./...
