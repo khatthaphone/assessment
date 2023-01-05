@@ -17,9 +17,9 @@ func main() {
 	defer db.Close()
 
 	e := echo.New()
-	e.GET("/", func(c echo.Context) error {
-		return c.String(http.StatusOK, "Hello, World!")
-	})
+	e.GET("/", helloWorldHandler)
+
+	e.Use(loginMiddleware)
 
 	handler := expense.NewHandler(db)
 	e.POST("/expenses", handler.AddExpenseHandler)
@@ -32,4 +32,8 @@ func main() {
 
 	fmt.Println("Please use server.go for main file")
 	fmt.Println("start at port:", os.Getenv("PORT"))
+}
+
+func helloWorldHandler(c echo.Context) error {
+	return c.String(http.StatusOK, "Hello, World!")
 }

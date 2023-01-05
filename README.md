@@ -1,3 +1,8 @@
+# To run integration test, please run:
+```bash
+make test-it-docker
+```
+
 # Prerequisites
 * โปรเจคตั้งต้นคือ[โปรเจคนี้](https://github.com/KKGo-Software-engineering/assessment)
 * กำหนดให้ส่งลิ้งค์คำตอบคือ github repository ที่เก็บโค้ดของคุณ `https://github.com/<your github name>/assessment`
