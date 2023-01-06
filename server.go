@@ -1,9 +1,13 @@
 package main
 
 import (
+	"context"
 	"fmt"
 	"net/http"
 	"os"
+	"os/signal"
+	"syscall"
+	"time"
 
 	"github.com/labstack/echo/v4"
 
@@ -28,10 +32,25 @@ func main() {
 	e.GET("/expenses", handler.GetAllExpensesHandler)
 
 	port := os.Getenv("PORT")
-	e.Logger.Fatal(e.Start(fmt.Sprintf(":%v", port)))
+
+	go func() {
+		e.Logger.Fatal(e.Start(fmt.Sprintf(":%v", port)))
+	}()
 
 	fmt.Println("Please use server.go for main file")
-	fmt.Println("start at port:", os.Getenv("PORT"))
+	fmt.Println("Start at port:", os.Getenv("PORT"))
+
+	shutdown := make(chan os.Signal, 1)
+	signal.Notify(shutdown, os.Interrupt, syscall.SIGTERM)
+
+	<-shutdown
+	fmt.Println("Shutting down...")
+	ctx, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := e.Shutdown(ctx); err != nil {
+		fmt.Println("Shutdown err: ", err)
+	}
+	fmt.Println("Bye bye!")
 }
 
 func helloWorldHandler(c echo.Context) error {
