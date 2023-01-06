@@ -18,7 +18,7 @@ import (
 )
 
 func setup() (*echo.Echo, *sql.DB, func()) {
-	conn, err := sql.Open("postgres", os.Getenv("DB_URL"))
+	conn, err := sql.Open("postgres", os.Getenv("DATABASE_URL"))
 	if err != nil {
 		log.Fatal("Unable to connect to DB", err)
 	}
@@ -53,8 +53,6 @@ func setup() (*echo.Echo, *sql.DB, func()) {
 
 	return e, conn, close
 }
-
-// TODO: TestInvalidAuth
 
 func TestAddExpense(t *testing.T) {
 

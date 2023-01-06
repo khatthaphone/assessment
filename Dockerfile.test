@@ -3,4 +3,4 @@ FROM golang:1.19-alpine
 WORKDIR /go/src/target
 
 # Run tests
-CMD CGO_ENABLED=0 PORT=2565 DB_URL=postgresql://postgres:postgresdb/expenses?sslmode=disable go test --tags=integration ./... -v -cover -coverprofile coverage.out
+CMD CGO_ENABLED=0 PORT=2565 DATABASE_URL=postgresql://postgres:postgresdb/expenses?sslmode=disable go test --tags=integration ./... -v -cover -coverprofile coverage.out

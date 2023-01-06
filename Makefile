@@ -1,8 +1,8 @@
 
 PORT=2565
-DB_URL=postgresql://postgres:postgres@127.0.0.1:5432/expenses?sslmode=disable
+DATABASE_URL=postgresql://postgres:postgres@127.0.0.1:5432/expenses?sslmode=disable
 
-ENV=PORT=${PORT} DB_URL=${DB_URL}
+ENV=PORT=${PORT} DATABASE_URL=${DATABASE_URL}
 
 dev:
 	${ENV} re go run .

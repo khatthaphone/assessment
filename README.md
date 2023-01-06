@@ -1,5 +1,11 @@
-# To run integration test, please run:
+# To run integration test (in docker), please run:
 ```bash
+make test-it-docker
+```
+
+# To run integration test (terminal), please run:
+```bash
+docker compose -f docker-compose.test.yaml up -d db
 make test-it-docker
 ```
 
